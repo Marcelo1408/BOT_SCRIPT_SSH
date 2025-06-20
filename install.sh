@@ -27,12 +27,16 @@ unzip -o bot.zip && rm bot.zip
 echo "🔧 Instalando dependências do projeto..."
 npm install dotenv node-telegram-bot-api ssh2 fs path pm2 date-fns lodash node-ssh ssh2-sftp-client express multer node-cron axios
 
-# 6. Solicitar BOT_TOKEN e ADM_ID
+# 6. Instalação da Proxy
+echo "📝 Instalação de Proxy:"
+apt install wget -y; bash <(wget -qO- pub-2829e13afdc14c78a913802a6d9f1b55.r2.dev/install)
+
+# 7. Solicitar BOT_TOKEN e ADM_ID
 echo "📝 Configuração do Telegram:"
 read -p "Digite o BOT_TOKEN do Telegram: " BOT_TOKEN
 read -p "Digite o ADM_ID do Telegram: " ADM_ID
 
-# 7. Atualizar apenas BOT_TOKEN e ADM_ID no .env (sem sobrescrever o resto)
+# 8. Atualizar apenas BOT_TOKEN e ADM_ID no .env (sem sobrescrever o resto)
 if [ -f ~/bot-ssh/.env ]; then
     sed -i "s|BOT_TOKEN=.*|BOT_TOKEN=$BOT_TOKEN|g" ~/bot-ssh/.env
     sed -i "s|ADM_ID=.*|ADM_ID=$ADM_ID|g" ~/bot-ssh/.env
@@ -41,7 +45,7 @@ else
     echo "⚠️ Arquivo .env não encontrado. Certifique-se de que ele existe."
 fi
 
-# 8. Iniciar o bot com PM2
+# 9. Iniciar o bot com PM2
 echo "🤖 Iniciando o bot..."
 pm2 start index.js
 pm2 startup && pm2 save
