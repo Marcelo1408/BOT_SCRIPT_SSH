@@ -25,7 +25,7 @@ unzip -o bot.zip && rm bot.zip
 
 # 5. Instalar dependências do Node.js
 echo "🔧 Instalando dependências do projeto..."
-npm install dotenv node-telegram-bot-api ssh2 fs path pm2 date-fns lodash node-ssh ssh2-sftp-client express multer node-cron
+npm install dotenv node-telegram-bot-api ssh2 fs path pm2 date-fns lodash node-ssh ssh2-sftp-client express multer node-cron axios
 
 # 6. Solicitar BOT_TOKEN e ADM_ID
 echo "📝 Configuração do Telegram:"
