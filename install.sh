@@ -1,14 +1,39 @@
-# ...código anterior...
+#!/bin/bash
 
-# 4.1. Solicitar informações do usuário
-echo "🔑 Por favor, insira o TOKEN do seu bot do Telegram:"
-read TELEGRAM_TOKEN
-echo "👤 Agora insira o ID do usuário do Telegram autorizado:"
-read TELEGRAM_USER_ID
+# Instalador Automático para Bot SSH
+echo "✅ Iniciando instalação automática..."
 
-# 4.2. Substituir BOT_TOKEN e ADM_ID no .env existente
-sed -i "s/^BOT_TOKEN=.*/BOT_TOKEN=$TELEGRAM_TOKEN/" .env
-sed -i "s/^ADM_ID=.*/ADM_ID=$TELEGRAM_USER_ID/" .env
-echo "✅ BOT_TOKEN e ADM_ID atualizados no .env!"
+# 1. Atualizar sistema e instalar dependências
+echo "🔄 Atualizando sistema e instalando dependências..."
+sudo apt update && sudo apt upgrade -y
+sudo apt install -y unzip curl
 
-# ...restante do código...
+# 2. Instalar Node.js 20.x
+echo "📦 Instalando Node.js 20.x..."
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt install -y nodejs
+
+# 3. Instalar PM2 globalmente
+echo "🚀 Instalando PM2..."
+sudo npm install -g pm2
+
+# 4. Baixar e extrair o bot
+echo "⬇️ Baixando e instalando o bot..."
+mkdir -p ~/bot-ssh && cd ~/bot-ssh
+wget -q https://github.com/Marcelo1408/BOT_SCRIPT_SSH/raw/main/novobotssh.zip -O bot.zip
+unzip -o bot.zip && rm bot.zip
+
+# 5. Instalar dependências do Node.js
+echo "🔧 Instalando dependências do projeto..."
+npm install dotenv node-telegram-bot-api ssh2 fs path pm2 date-fns lodash node-ssh ssh2-sftp-client express multer node-cron
+
+# 6. Iniciar o bot com PM2
+echo "🤖 Iniciando o bot..."
+pm2 start index.js
+pm2 startup && pm2 save
+
+echo "🎉 Instalação concluída com sucesso!"
+echo "📌 Comandos úteis:"
+echo "   pm2 logs         → Ver logs do bot"
+echo "   pm2 stop index   → Parar o bot"
+echo "   pm2 restart index → Reiniciar o bot"
