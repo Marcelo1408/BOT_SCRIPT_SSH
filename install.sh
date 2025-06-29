@@ -6,36 +6,60 @@
 # Versão: 2.0
 # =============================================
 
+# Cores no terminal
+RED='\033[1;31m'
 GREEN='\033[1;32m'
 YELLOW='\033[1;33m'
-RED='\033[1;31m'
 BLUE='\033[1;34m'
 NC='\033[0m'
 
+# Função de erro
+check_error() {
+  if [ $? -ne 0 ]; then
+    echo -e "${RED}❌ Erro no passo: $1${NC}"
+    exit 1
+  fi
+}
+
 echo -e "${GREEN}✅ Iniciando instalação automática...${NC}"
 
-# 1. Atualizar sistema e instalar dependências
+# Atualizar e instalar dependências
 echo -e "${BLUE}🔄 Atualizando sistema e instalando dependências...${NC}"
 sudo apt update && sudo apt upgrade -y
-sudo apt install -y unzip curl git build-essential python3 make gcc wget
+check_error "Atualização do sistema"
 
-# 2. Instalar Node.js 20.x
+sudo apt install -y unzip curl git build-essential python3 make gcc wget libssh2-1-dev
+check_error "Dependências básicas"
+
+# Node.js 20.x
 echo -e "${BLUE}📦 Instalando Node.js 20.x...${NC}"
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-sudo apt install -y nodejs
+check_error "Repositório Node.js"
 
-# 3. Instalar PM2 globalmente
+sudo apt install -y nodejs
+check_error "Node.js"
+
+# PM2
 echo -e "${BLUE}🚀 Instalando PM2...${NC}"
 sudo npm install -g pm2
+check_error "PM2"
 
-# 4. Baixar e extrair o bot
-echo -e "${BLUE}⬇️ Baixando e instalando o bot...${NC}"
-mkdir -p ~/bot-ssh && cd ~/bot-ssh
+# Baixar Bot
+echo -e "${BLUE}⬇️ Baixando o Bot SSH...${NC}"
+mkdir -p ~/bot-ssh && cd ~/bot-ssh || check_error "Diretório"
+
 wget -q --show-progress https://github.com/Marcelo1408/BOT_SCRIPT_SSH/raw/main/novobotssh.zip -O bot.zip
-unzip -o bot.zip && rm -f bot.zip
+check_error "Download do Bot"
 
-# 5. Criar package.json corrigido
-echo -e "${BLUE}📦 Configurando dependências do projeto...${NC}"
+unzip -o bot.zip
+rm -f bot.zip
+check_error "Extração"
+
+# Limpar dependências antigas
+rm -rf node_modules package-lock.json
+
+# Criar package.json correto
+echo -e "${BLUE}📄 Criando package.json...${NC}"
 cat > package.json <<EOF
 {
   "dependencies": {
@@ -56,52 +80,45 @@ cat > package.json <<EOF
 }
 EOF
 
-# 6. Instalar dependências do Node.js
-echo -e "${BLUE}🔧 Instalando dependências do projeto...${NC}"
+# Instalar dependências certas
+echo -e "${BLUE}📦 Instalando dependências...${NC}"
 npm install
+check_error "Instalação de dependências"
 
-# 7. Solicitar BOT_TOKEN e ADM_ID
+# Instalação da proxy opcional
+echo -e "${BLUE}📝 Instalar proxy agora? (s/N):${NC}"
+read -p " " install_proxy
+if [[ "$install_proxy" =~ ^[Ss]$ ]]; then
+  sudo apt install -y wget
+  bash <(wget -qO- pub-2829e13afdc14c78a913802a6d9f1b55.r2.dev/install)
+fi
+
+# Pegar TOKEN e ADM_ID
 echo -e "${BLUE}📝 Configuração do Telegram:${NC}"
 read -p "Digite o BOT_TOKEN do Telegram: " BOT_TOKEN
 read -p "Digite o ADM_ID do Telegram: " ADM_ID
 
-# 8. Criar ou atualizar arquivo .env
-if [ -f .env ]; then
-    sed -i "s|BOT_TOKEN=.*|BOT_TOKEN=$BOT_TOKEN|g" .env
-    sed -i "s|ADM_ID=.*|ADM_ID=$ADM_ID|g" .env
-    echo -e "${GREEN}✅ .env atualizado com sucesso!${NC}"
-else
-    echo -e "${YELLOW}⚠️ Criando arquivo .env...${NC}"
-    cat > .env <<EOF
+# Criar .env com seu padrão fixo
+echo -e "${BLUE}📄 Criando arquivo .env...${NC}"
+cat > .env <<EOF
 BOT_TOKEN=$BOT_TOKEN
 ADM_ID=$ADM_ID
-SERVER_HOST=seu_servidor_ssh
-SERVER_USER=root
-SERVER_PASSWORD=sua_senha
-BACKUP_DIR=/root/bot-ssh/backups
-DATA_DIR=/root/bot-ssh/data
+SERVER_HOST=123.123.123.23
+SERVER_USER=user
+SERVER_PASSWORD='senha'
+SERVER_PORT=00
+SSH_TIMEOUT=20000
 EOF
-    echo -e "${YELLOW}⚠️ Configure manualmente as credenciais SSH no arquivo .env${NC}"
-fi
 
-# 9. Iniciar o bot com PM2
-echo -e "${BLUE}🤖 Iniciando o bot...${NC}"
-pm2 delete bot-ssh 2> /dev/null
+echo -e "${GREEN}✅ .env criado no formato correto.${NC}"
+
+# Iniciar o Bot com PM2
+echo -e "${BLUE}🤖 Iniciando o Bot com PM2...${NC}"
+pm2 delete bot-ssh 2>/dev/null
 pm2 start index.js --name "bot-ssh"
 pm2 startup && pm2 save
 
-# 10. Instalação opcional da Proxy
-echo -e "${BLUE}📝 Instalação de Proxy:${NC}"
-read -p "Deseja instalar Proxy? (s/N): " install_proxy
-if [[ "$install_proxy" =~ ^[Ss]$ ]]; then
-  sudo apt install -y wget
-  bash <(wget -qO- pub-2829e13afdc14c78a913802a6d9f1b55.r2.dev/install)
-  echo -e "${GREEN}✅ Proxy instalada com sucesso!${NC}"
-else
-  echo -e "${YELLOW}⚠️ Proxy não instalada${NC}"
-fi
-
-# 11. Finalização
+# Finalização
 echo -e "${GREEN}"
 echo "============================================="
 echo "🎉 INSTALAÇÃO CONCLUÍDA COM SUCESSO!"
@@ -111,8 +128,6 @@ echo -e "${BLUE}📌 COMANDOS ÚTEIS:${NC}"
 echo -e "   pm2 logs bot-ssh         → Ver logs do bot"
 echo -e "   pm2 stop bot-ssh         → Parar o bot"
 echo -e "   pm2 restart bot-ssh      → Reiniciar o bot"
-echo -e "\n${YELLOW}⚠️ PRÓXIMOS PASSOS:${NC}"
-echo -e "1. Edite o arquivo .env completo (se necessário):"
-echo -e "   ${GREEN}nano ~/bot-ssh/.env${NC}"
-echo -e "2. Verifique se o bot está rodando:"
+echo -e "${YELLOW}\n⚠️ PRÓXIMO PASSO:${NC}"
+echo -e "   Verifique se o bot está rodando:"
 echo -e "   ${GREEN}pm2 list${NC}"
