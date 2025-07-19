@@ -46,7 +46,7 @@ check_error "PM2"
 
 # Baixar Bot
 echo -e "${BLUE}⬇️ Baixando o Bot SSH...${NC}"
-mkdir -p ~/bot-ssh && cd ~/bot-ssh || check_error "Diretório"
+mkdir -p ~/bot && cd ~/bot || check_error "Diretório"
 
 wget -q --show-progress https://github.com/Marcelo1408/BOT_SCRIPT_SSH/raw/main/novobotssh.zip -O bot.zip
 check_error "Download do Bot"
@@ -114,7 +114,7 @@ echo -e "${GREEN}✅ .env criado no formato correto.${NC}"
 
 # Iniciar o Bot com PM2
 echo -e "${BLUE}🤖 Iniciando o Bot com PM2...${NC}"
-pm2 delete bot-ssh 2>/dev/null
+pm2 delete bot 2>/dev/null
 pm2 start index.js --name "bot-ssh"
 pm2 startup && pm2 save
 
@@ -125,9 +125,9 @@ echo "🎉 INSTALAÇÃO CONCLUÍDA COM SUCESSO!"
 echo "============================================="
 echo -e "${NC}"
 echo -e "${BLUE}📌 COMANDOS ÚTEIS:${NC}"
-echo -e "   pm2 logs bot-ssh         → Ver logs do bot"
-echo -e "   pm2 stop bot-ssh         → Parar o bot"
-echo -e "   pm2 restart bot-ssh      → Reiniciar o bot"
+echo -e "   pm2 logs bot         → Ver logs do bot"
+echo -e "   pm2 stop bot         → Parar o bot"
+echo -e "   pm2 restart bot    → Reiniciar o bot"
 echo -e "${YELLOW}\n⚠️ PRÓXIMO PASSO:${NC}"
 echo -e "   Verifique se o bot está rodando:"
 echo -e "   ${GREEN}pm2 list${NC}"
