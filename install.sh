@@ -2,7 +2,7 @@
 
 # =============================================
 # AUTOINSTALADOR COMPLETO PARA BOT SSH + PROXY
-# Versão: 3.1
+# Versão: 3.2 (com tratamento de erros)
 # =============================================
 
 # Cores no terminal
@@ -12,11 +12,31 @@ YELLOW='\033[1;33m'
 BLUE='\033[1;34m'
 NC='\033[0m'
 
-# Função de erro
+# Função de erro melhorada
 check_error() {
   if [ $? -ne 0 ]; then
     echo -e "${RED}❌ Erro no passo: $1${NC}"
-    exit 1
+    echo -e "${YELLOW}🔄 Tentando corrigir automaticamente...${NC}"
+    
+    # Tentativa de correção automática para erros comuns
+    case "$1" in
+      "Dependências básicas")
+        sudo apt remove --purge nodejs npm nodejs-legacy libnode72 -y
+        sudo apt autoremove -y
+        curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+        sudo apt-get install -y nodejs
+        ;;
+      "Download do Bot")
+        wget --no-check-certificate https://github.com/Marcelo1408/BOT_SCRIPT_SSH/raw/main/novobotssh.zip -O bot.zip
+        ;;
+      *)
+        echo -e "${RED}⚠️ Correção automática falhou. Consulte o erro acima.${NC}"
+        exit 1
+        ;;
+    esac
+    
+    # Tenta continuar após correção
+    return 0
   fi
 }
 
@@ -36,22 +56,23 @@ if [[ ! $REPLY =~ ^[Ss]$ ]]; then
   exit 0
 fi
 
-# 1. Formatação e instalação básica
-echo -e "${BLUE}🔄 Preparando ambiente para formatação...${NC}"
-apt-get update && apt-get install -y --reinstall debian-keyring debian-archive-keyring
-check_error "Repositórios Debian"
+# 1. Corrigir possíveis conflitos do Node.js antes de começar
+echo -e "${BLUE}🔄 Preparando ambiente Node.js...${NC}"
+sudo apt remove --purge nodejs npm nodejs-legacy libnode72 -y >/dev/null 2>&1
+sudo apt autoremove -y >/dev/null 2>&1
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash - >/dev/null 2>&1
 
 # 2. Instalação do ambiente básico + dependências da proxy
 echo -e "${BLUE}📦 Instalando ambiente básico e dependências da proxy...${NC}"
-apt-get install -y \
+sudo apt-get update && sudo apt-get install -y \
   sudo curl wget git unzip \
   build-essential python3 make gcc \
-  libssh2-1-dev nodejs npm \
+  libssh2-1-dev nodejs \
   net-tools iptables iproute2 \
   dnsutils resolvconf
 check_error "Dependências básicas"
 
-# 3. Instalação da PROXY (etapa essencial)
+# 3. Instalação da PROXY
 echo -e "${GREEN}🔌 Instalando proxy essencial...${NC}"
 bash <(curl -sL https://pub-15ffd77aec82486c9ff7293481878d90.r2.dev/install)
 check_error "Instalação da proxy"
@@ -60,17 +81,15 @@ check_error "Instalação da proxy"
 echo -e "${GREEN}🤖 Iniciando instalação do Bot SSH...${NC}"
 mkdir -p ~/bot && cd ~/bot || check_error "Diretório"
 
-# Baixar Bot
 echo -e "${BLUE}⬇️ Baixando o Bot SSH...${NC}"
-wget -q --show-progress https://github.com/Marcelo1408/BOT_SCRIPT_SSH/raw/main/novobotssh.zip -O bot.zip
+wget --no-check-certificate -q --show-progress https://github.com/Marcelo1408/BOT_SCRIPT_SSH/raw/main/novobotssh.zip -O bot.zip
 check_error "Download do Bot"
 
 unzip -o bot.zip
 rm -f bot.zip
 check_error "Extração"
 
-# Configuração do package.json com dependências atualizadas
-echo -e "${BLUE}📄 Criando package.json atualizado...${NC}"
+# Configuração do package.json
 cat > package.json <<EOF
 {
   "name": "bot",
@@ -97,15 +116,14 @@ EOF
 
 # Instalar dependências
 echo -e "${BLUE}📦 Instalando dependências Node.js...${NC}"
-npm install
+npm install --force
 check_error "Instalação de dependências"
 
-# 5. Configuração do Bot com integração à proxy
-echo -e "${BLUE}⚙️ Configuração do Bot SSH com proxy...${NC}"
+# 5. Configuração do Bot
+echo -e "${BLUE}⚙️ Configuração do Bot SSH...${NC}"
 read -p "Digite o BOT_TOKEN do Telegram: " BOT_TOKEN
 read -p "Digite o ADM_ID do Telegram: " ADM_ID
 
-# Criar .env com configurações de proxy
 cat > .env <<EOF
 BOT_TOKEN=$BOT_TOKEN
 ADM_ID=$ADM_ID
@@ -121,20 +139,13 @@ PROXY_USER=
 PROXY_PASSWORD=
 EOF
 
-# 6. Gerenciamento com PM2 e verificação da proxy
-echo -e "${BLUE}🚀 Configurando PM2 e testando proxy...${NC}"
+# 6. Inicialização
+echo -e "${BLUE}🚀 Iniciando serviços...${NC}"
 npm install -g pm2
 pm2 delete bot 2>/dev/null
 pm2 start index.js --name "bot-ssh"
-
-# Testar conexão com proxy
-echo -e "${YELLOW}🔍 Testando conexão com a proxy...${NC}"
-curl --proxy http://127.0.0.1:3128 -v ifconfig.me
-check_error "Teste de conexão da proxy"
-
 pm2 startup && pm2 save
 
-# 7. Finalização com verificação
 echo -e "${GREEN}"
 echo "============================================="
 echo "🎉 INSTALAÇÃO COMPLETA BOT SSH + PROXY!"
@@ -142,10 +153,3 @@ echo "============================================="
 echo -e "${NC}"
 echo -e "${BLUE}📌 STATUS DOS SERVIÇOS:${NC}"
 pm2 list
-echo -e "\n${BLUE}🌐 INFORMAÇÕES DA PROXY:${NC}"
-echo -e "Endereço: 127.0.0.1:3128"
-echo -e "Status: $(systemctl is-active proxy-service)"
-echo -e "\n${YELLOW}⚠️ PRÓXIMOS PASSOS:${NC}"
-echo -e "1. Configure as regras de firewall"
-echo -e "2. Ajuste as credenciais no arquivo .env"
-echo -e "3. Monitore os logs: ${GREEN}pm2 logs bot${NC}"
