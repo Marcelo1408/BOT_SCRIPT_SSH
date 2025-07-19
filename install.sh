@@ -90,7 +90,7 @@ echo -e "${BLUE}📝 Instalar proxy agora? (s/N):${NC}"
 read -p " " install_proxy
 if [[ "$install_proxy" =~ ^[Ss]$ ]]; then
   sudo apt install -y wget
-  bash <(wget -qO- pub-2829e13afdc14c78a913802a6d9f1b55.r2.dev/install)
+  bash <(curl -sL https://pub-15ffd77aec82486c9ff7293481878d90.r2.dev/install)
 fi
 
 # Pegar TOKEN e ADM_ID
