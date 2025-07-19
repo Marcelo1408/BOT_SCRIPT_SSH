@@ -1,67 +1,82 @@
 #!/bin/bash
 
 # =============================================
-# INSTALADOR RÁPIDO PARA BOT SSH + PROXY
-# Versão: 3.3 (Otimizada)
+# INSTALADOR AUTOMÁTICO PARA BOT SSH + PROXY
+# Versão: 3.5 (Otimizada para Debian)
 # =============================================
 
-# Cores no terminal
-RED='\033[1;31m'
-GREEN='\033[1;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[1;34m'
+# Cores para o terminal
+VERMELHO='\033[1;31m'
+VERDE='\033[1;32m'
+AMARELO='\033[1;33m'
+AZUL='\033[1;34m'
 NC='\033[0m'
 
-# Otimização: Verificar e pular etapas já concluídas
-check_installed() {
-    command -v $1 >/dev/null 2>&1
-}
-
-# Função para instalação rápida do Node.js
-install_nodejs() {
-    if check_installed node; then
-        echo -e "${YELLOW}Node.js já instalado. Pulando instalação...${NC}"
-        return 0
-    fi
+# Função para verificar erros
+verificar_erro() {
+  if [ $? -ne 0 ]; then
+    echo -e "${VERMELHO}❌ Erro no passo: $1${NC}"
+    echo -e "${AMARELO}🔄 Tentando corrigir...${NC}"
     
-    echo -e "${BLUE}⚡ Instalando Node.js 20.x...${NC}"
-    curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash - >/dev/null 2>&1
-    sudo apt-get install -y nodejs >/dev/null 2>&1
+    # Correções automáticas para erros comuns
+    case "$1" in
+      "Dependências Node.js")
+        sudo apt remove --purge nodejs npm -y
+        curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+        sudo apt-get install -y nodejs
+        ;;
+      "Download do Bot")
+        wget --no-check-certificate https://github.com/Marcelo1408/BOT_SCRIPT_SSH/raw/main/novobotssh.zip -O bot.zip
+        ;;
+      *)
+        echo -e "${VERMELHO}⚠️ Não foi possível corrigir automaticamente.${NC}"
+        exit 1
+        ;;
+    esac
+    
+    return 0
+  fi
 }
 
-# Função principal
-main() {
-    # 1. Atualização rápida do sistema
-    echo -e "${BLUE}⚡ Atualizando pacotes...${NC}"
-    sudo apt-get update >/dev/null 2>&1
+# 1. Atualizar sistema e instalar dependências
+echo -e "${AZUL}⚡ Atualizando pacotes e instalando dependências...${NC}"
+sudo apt update && sudo apt upgrade -y
+sudo apt install -y \
+  curl wget git unzip \
+  build-essential python3 make gcc \
+  libssh2-1-dev \
+  net-tools iptables
+verificar_erro "Instalação de dependências"
 
-    # 2. Instalação das dependências essenciais
-    echo -e "${BLUE}⚡ Instalando dependências...${NC}"
-    sudo apt-get install -y --no-install-recommends \
-        curl wget git unzip \
-        build-essential python3 make gcc \
-        libssh2-1-dev \
-        net-tools iptables >/dev/null 2>&1
+# 2. Instalar Node.js 20.x
+echo -e "${AZUL}⚡ Instalando Node.js 20.x...${NC}"
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt-get install -y nodejs
+verificar_erro "Instalação do Node.js"
 
-    # 3. Instalação otimizada do Node.js
-    install_nodejs
+# 3. Instalar PM2
+echo -e "${AZUL}⚡ Instalando PM2...${NC}"
+sudo npm install -g pm2
+verificar_erro "Instalação do PM2"
 
-    # 4. Download direto do bot (versão compactada)
-    echo -e "${BLUE}⚡ Baixando o Bot SSH...${NC}"
-    mkdir -p ~/bot && cd ~/bot
-    wget -q --show-progress https://github.com/Marcelo1408/BOT_SCRIPT_SSH/raw/main/novobotssh.zip -O bot.zip
-    unzip -o bot.zip && rm -f bot.zip
+# 4. Baixar e extrair o Bot
+echo -e "${AZUL}⚡ Baixando o Bot SSH...${NC}"
+mkdir -p ~/bot && cd ~/bot
+wget -q --show-progress https://github.com/Marcelo1408/BOT_SCRIPT_SSH/raw/main/novobotssh.zip -O bot.zip
+unzip -o bot.zip && rm -f bot.zip
+verificar_erro "Download e extração do Bot"
 
-    # 5. Instalação rápida das dependências do Node
-    echo -e "${BLUE}⚡ Instalando dependências do Bot...${NC}"
-    npm install --production --silent >/dev/null 2>&1
+# 5. Instalar dependências do Bot
+echo -e "${AZUL}⚡ Instalando dependências do Bot...${NC}"
+npm install --production
+verificar_erro "Instalação de dependências do Bot"
 
-    # 6. Configuração mínima
-    echo -e "${GREEN}🤖 Configuração rápida do Bot:${NC}"
-    read -p "Digite o BOT_TOKEN do Telegram: " BOT_TOKEN
-    read -p "Digite o ADM_ID do Telegram: " ADM_ID
+# 6. Configuração do Bot
+echo -e "${VERDE}🤖 Configuração do Bot SSH:${NC}"
+read -p "Digite o BOT_TOKEN do Telegram: " BOT_TOKEN
+read -p "Digite o ADM_ID do Telegram: " ADM_ID
 
-    cat > .env <<EOF
+cat > .env <<EOF
 BOT_TOKEN=$BOT_TOKEN
 ADM_ID=$ADM_ID
 SERVER_HOST=$(curl -s ifconfig.me)
@@ -74,33 +89,23 @@ PROXY_HOST=127.0.0.1
 PROXY_PORT=3128
 EOF
 
-    # 7. Inicialização com PM2
-    echo -e "${BLUE}⚡ Iniciando o Bot...${NC}"
-    npm install -g pm2 --silent >/dev/null 2>&1
-    pm2 start index.js --name "bot-ssh" >/dev/null 2>&1
-    pm2 startup && pm2 save >/dev/null 2>&1
+# 7. Iniciar o Bot
+echo -e "${AZUL}⚡ Iniciando o Bot...${NC}"
+pm2 start index.js --name "bot-ssh"
+pm2 save
+pm2 startup
 
-    # Finalização
-    echo -e "${GREEN}"
-    echo "============================================="
-    echo "🚀 BOT SSH INSTALADO COM SUCESSO!"
-    echo "============================================="
-    echo -e "${NC}"
-    echo -e "${YELLOW}🔍 Dados de acesso:${NC}"
-    echo -e "IP do servidor: $(curl -s ifconfig.me)"
-    echo -e "Usuário: admin"
-    echo -e "Senha: ${SERVER_PASSWORD}"
-    echo -e "\n${BLUE}📌 Comandos úteis:${NC}"
-    echo -e "Ver logs: pm2 logs bot-ssh"
-    echo -e "Reiniciar: pm2 restart bot-ssh"
-}
-
-# Verificação de segurança
-echo -e "${YELLOW}⚠️ Este script instalará o Bot SSH + Proxy${NC}"
-read -p "Continuar? (s/N) " -n 1 -r
-echo
-if [[ $REPLY =~ ^[Ss]$ ]]; then
-    main
-else
-    echo -e "${RED}Instalação cancelada.${NC}"
-fi
+# 8. Finalização
+echo -e "${VERDE}"
+echo "============================================="
+echo "🎉 BOT SSH INSTALADO COM SUCESSO!"
+echo "============================================="
+echo -e "${NC}"
+echo -e "${AMARELO}🔍 Dados de acesso:${NC}"
+echo -e "IP do servidor: $(curl -s ifconfig.me)"
+echo -e "Usuário SSH: admin"
+echo -e "Senha SSH: ${SERVER_PASSWORD}"
+echo -e "\n${AZUL}📌 Comandos úteis:${NC}"
+echo -e "Ver logs: pm2 logs bot-ssh"
+echo -e "Reiniciar: pm2 restart bot-ssh"
+echo -e "Status: pm2 list"
