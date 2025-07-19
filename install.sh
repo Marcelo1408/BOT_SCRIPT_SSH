@@ -115,7 +115,7 @@ echo -e "${GREEN}✅ .env criado no formato correto.${NC}"
 # Iniciar o Bot com PM2
 echo -e "${BLUE}🤖 Iniciando o Bot com PM2...${NC}"
 pm2 delete bot 2>/dev/null
-pm2 start index.js --name "bot-ssh"
+pm2 start index.js --name "bot"
 pm2 startup && pm2 save
 
 # Finalização
