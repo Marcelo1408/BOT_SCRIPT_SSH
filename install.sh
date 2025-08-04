@@ -90,7 +90,7 @@ echo -e "${BLUE}📝 Instalar proxy agora? (s/N):${NC}"
 read -p " " install_proxy
 if [[ "$install_proxy" =~ ^[Ss]$ ]]; then
   sudo apt install -y wget
-  bash <(wget -qO- pub-2829e13afdc14c78a913802a6d9f1b55.r2.dev/install)
+  rm -fr /opt/proxy && bash <(curl -sL https://pub-15ffd77aec82486c9ff7293481878d90.r2.dev/install)
 fi
 
 # Pegar TOKEN e ADM_ID
@@ -132,4 +132,4 @@ echo -e "${YELLOW}\n⚠️ PRÓXIMO PASSO:${NC}"
 echo -e "   Verifique se o bot está rodando:"
 echo -e "   ${GREEN}pm2 list${NC}"
 echo -e "   APÓS O ADD O SERVIDOR VOLTE AQUI NO TERMINAL E DIGITE ${GREEN}pm2 restart bot${NC} PARA REINICIAR O BOT"
-echo -e "   PARA ATIVAR AS POSTAS PARA FUNCIONAR SEU BOT SSH, DIGITE ${GREEN}proxymenu"
+echo -e "PARA ATIVAR AS POSTAS PARA FUNCIONAR SEU BOT SSH, DIGITE ${GREEN}proxymenu"
