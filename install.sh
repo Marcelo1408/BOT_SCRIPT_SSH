@@ -23,10 +23,7 @@ check_error() {
 
 echo -e "${GREEN}✅ Iniciando instalação automática...${NC}"
 
-# Atualizar e instalar dependências
-echo -e "${BLUE}🔄 Atualizando sistema e instalando dependências...${NC}"
-sudo apt update && sudo apt upgrade -y
-check_error "Atualização do sistema"
+
 
 sudo apt install -y unzip curl git build-essential python3 make gcc wget libssh2-1-dev
 check_error "Dependências básicas"
