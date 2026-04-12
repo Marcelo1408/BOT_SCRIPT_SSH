@@ -28,13 +28,21 @@ echo -e "${GREEN}✅ Iniciando instalação automática...${NC}"
 sudo apt install -y unzip curl git build-essential python3 make gcc wget libssh2-1-dev
 check_error "Dependências básicas"
 
-# Node.js 20.x
-echo -e "${BLUE}📦 Instalando Node.js 20.x...${NC}"
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-check_error "Repositório Node.js"
+# Instalar nvm
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
 
-sudo apt install -y nodejs
-check_error "Node.js"
+# Carregar nvm no shell atual
+source ~/.bashrc
+
+# Instalar a versão LTS mais recente (ou uma específica)
+nvm install --lts
+
+# Verificar
+node --version
+npm --version
+
+# Definir como padrão
+nvm alias default 'lts/*'
 
 # PM2
 echo -e "${BLUE}🚀 Instalando PM2...${NC}"
