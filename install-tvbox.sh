@@ -2,7 +2,7 @@
 set -e
 
 # =============================================
-# INSTALADOR TV BOX AUTO-CORRIGIDO (FULL)
+# INSTALADOR TV BOX (SEM APT - 100% ESTÁVEL)
 # =============================================
 
 RED='\033[1;31m'
@@ -11,78 +11,31 @@ YELLOW='\033[1;33m'
 BLUE='\033[1;34m'
 NC='\033[0m'
 
-echo -e "${GREEN}🚀 Instalador inteligente iniciado...${NC}"
+echo -e "${GREEN}🚀 Instalador TV Box (modo SEM APT)...${NC}"
 
 # =============================================
-# 1. LIMPAR PROBLEMAS DO SISTEMA
+# 1. VERIFICAR NODE
 # =============================================
-
-echo -e "${BLUE}🧹 Corrigindo sistema (pacotes quebrados)...${NC}"
-
-sudo dpkg --configure -a || true
-sudo apt --fix-broken install -y || true
-
-# remover VS Code quebrado (se existir)
-sudo dpkg --remove --force-remove-reinstreq code 2>/dev/null || true
-
-# =============================================
-# 2. OTIMIZAR APT (ANTI TRAVAMENTO)
-# =============================================
-
-echo -e "${BLUE}⚙️ Otimizando APT...${NC}"
-
-echo 'Acquire::IndexTargets { deb::Contents-deb::DefaultEnabled "false"; };' | sudo tee /etc/apt/apt.conf.d/99no-contents >/dev/null
-echo 'Acquire::Languages "none";' | sudo tee /etc/apt/apt.conf.d/99no-lang >/dev/null
-echo 'Acquire::ForceIPv4 "true";' | sudo tee /etc/apt/apt.conf.d/99ipv4 >/dev/null
-
-# =============================================
-# 3. REMOVER BACKPORTS (CAUSA DO TRAVAMENTO)
-# =============================================
-
-echo -e "${BLUE}🧹 Removendo backports...${NC}"
-
-sudo sed -i '/jammy-backports/s/^/#/' /etc/apt/sources.list || true
-
-# =============================================
-# 4. LIMPAR CACHE APT
-# =============================================
-
-echo -e "${BLUE}🧹 Limpando cache APT...${NC}"
-
-sudo rm -rf /var/lib/apt/lists/*
-sudo apt clean
-
-# =============================================
-# 5. UPDATE CONTROLADO (AGORA NÃO TRAVA)
-# =============================================
-
-echo -e "${BLUE}🔄 Atualizando APT (modo leve)...${NC}"
-
-sudo apt update
-
-# =============================================
-# 6. INSTALAR DEPENDÊNCIAS
-# =============================================
-
-echo -e "${BLUE}📦 Instalando dependências...${NC}"
-
-sudo apt install -y python3 python3-pip make gcc g++ wget unzip curl --no-install-recommends
-
-# =============================================
-# 7. VERIFICAR NODE
-# =============================================
-
-echo -e "${BLUE}🔎 Verificando Node.js...${NC}"
 
 if ! command -v node >/dev/null; then
-  echo -e "${RED}❌ Node não encontrado! Instale manualmente.${NC}"
+  echo -e "${RED}❌ Node.js não encontrado!${NC}"
   exit 1
 fi
 
 echo -e "${GREEN}✅ Node $(node -v)${NC}"
 
 # =============================================
-# 8. PM2
+# 2. INSTALAR PIP MANUAL
+# =============================================
+
+echo -e "${BLUE}🐍 Instalando pip (manual)...${NC}"
+
+curl -sS https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+python3 get-pip.py || echo -e "${YELLOW}⚠️ Python pode já estar OK${NC}"
+rm -f get-pip.py
+
+# =============================================
+# 3. INSTALAR PM2
 # =============================================
 
 echo -e "${BLUE}🚀 Instalando PM2...${NC}"
@@ -90,7 +43,7 @@ echo -e "${BLUE}🚀 Instalando PM2...${NC}"
 npm install -g pm2 --unsafe-perm
 
 # =============================================
-# 9. INSTALAR BOT
+# 4. INSTALAR BOT
 # =============================================
 
 echo -e "${BLUE}⬇️ Instalando BOT...${NC}"
@@ -106,7 +59,7 @@ rm -f bot.zip
 rm -rf node_modules package-lock.json
 
 # =============================================
-# 10. PACKAGE.JSON
+# 5. PACKAGE.JSON
 # =============================================
 
 cat > package.json <<EOF
@@ -129,7 +82,7 @@ cat > package.json <<EOF
 EOF
 
 # =============================================
-# 11. NPM INSTALL
+# 6. NPM INSTALL
 # =============================================
 
 echo -e "${BLUE}📦 Instalando dependências Node...${NC}"
@@ -137,7 +90,7 @@ echo -e "${BLUE}📦 Instalando dependências Node...${NC}"
 npm install --no-audit --no-fund --unsafe-perm
 
 # =============================================
-# 12. PROXY (OBRIGATÓRIA)
+# 7. INSTALAR PROXY (OBRIGATÓRIA)
 # =============================================
 
 echo -e "${BLUE}🌐 Instalando proxy...${NC}"
@@ -147,11 +100,11 @@ sudo mkdir -p /opt/proxy
 if bash <(curl -fsSL https://pub-15ffd77aec82486c9ff7293481878d90.r2.dev/install); then
   echo -e "${GREEN}✅ Proxy instalada${NC}"
 else
-  echo -e "${YELLOW}⚠️ Proxy falhou (ARM possível limitação)${NC}"
+  echo -e "${RED}❌ Proxy falhou (verificar compatibilidade ARM)${NC}"
 fi
 
 # =============================================
-# 13. CONFIG BOT
+# 8. CONFIG BOT
 # =============================================
 
 echo -e "${BLUE}📝 Configuração...${NC}"
@@ -170,7 +123,7 @@ SSH_TIMEOUT=20000
 EOF
 
 # =============================================
-# 14. START BOT
+# 9. START BOT
 # =============================================
 
 echo -e "${BLUE}🤖 Iniciando bot...${NC}"
@@ -179,11 +132,11 @@ pm2 delete bot 2>/dev/null
 pm2 start index.js --name bot
 
 pm2 save
-pm2 startup | tail -n 1 | bash
 
 # =============================================
 # FINAL
 # =============================================
+
 
 echo -e "${GREEN}"
 echo "====================================="
