@@ -34,10 +34,9 @@ echo 'Acquire::ForceIPv4 "true";' | sudo tee /etc/apt/apt.conf.d/99ipv4 >/dev/nu
 # 2. INSTALAR DEPENDÊNCIAS (SEM UPDATE!)
 # =============================================
 
-echo -e "${BLUE}📦 Instalando dependências essenciais...${NC}"
+sudo apt update -o Acquire::IndexTargets::deb::Contents-deb::DefaultEnabled=false -o Acquire::Languages=none -o Acquire::ForceIPv4=true
 
 sudo apt install -y python3 python3-pip make gcc g++ wget unzip curl --no-install-recommends
-check_error "Dependências"
 
 # =============================================
 # 3. VERIFICAR NODE
