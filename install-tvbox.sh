@@ -2,7 +2,7 @@
 set -e
 
 # =============================================
-# INSTALADOR TV BOX (CORRIGIDO - SEM TRAVAMENTO)
+# INSTALADOR TV BOX AUTO-CORRIGIDO (FULL)
 # =============================================
 
 RED='\033[1;31m'
@@ -11,66 +11,94 @@ YELLOW='\033[1;33m'
 BLUE='\033[1;34m'
 NC='\033[0m'
 
-check_error() {
-  if [ $? -ne 0 ]; then
-    echo -e "${RED}❌ Erro: $1${NC}"
-    exit 1
-  fi
-}
-
-echo -e "${GREEN}🚀 Instalando BOT TV BOX (modo estável)...${NC}"
+echo -e "${GREEN}🚀 Instalador inteligente iniciado...${NC}"
 
 # =============================================
-# 1. CONFIGURAR APT MODO LEVE (DEFINITIVO)
+# 1. LIMPAR PROBLEMAS DO SISTEMA
 # =============================================
 
-echo -e "${BLUE}⚙️ Otimizando APT (sem travamento)...${NC}"
+echo -e "${BLUE}🧹 Corrigindo sistema (pacotes quebrados)...${NC}"
 
-echo 'Acquire::IndexTargets::deb::Contents-deb::DefaultEnabled "false";' | sudo tee /etc/apt/apt.conf.d/99no-contents >/dev/null
+sudo dpkg --configure -a || true
+sudo apt --fix-broken install -y || true
+
+# remover VS Code quebrado (se existir)
+sudo dpkg --remove --force-remove-reinstreq code 2>/dev/null || true
+
+# =============================================
+# 2. OTIMIZAR APT (ANTI TRAVAMENTO)
+# =============================================
+
+echo -e "${BLUE}⚙️ Otimizando APT...${NC}"
+
+echo 'Acquire::IndexTargets { deb::Contents-deb::DefaultEnabled "false"; };' | sudo tee /etc/apt/apt.conf.d/99no-contents >/dev/null
 echo 'Acquire::Languages "none";' | sudo tee /etc/apt/apt.conf.d/99no-lang >/dev/null
 echo 'Acquire::ForceIPv4 "true";' | sudo tee /etc/apt/apt.conf.d/99ipv4 >/dev/null
 
 # =============================================
-# 2. INSTALAR DEPENDÊNCIAS (SEM UPDATE!)
+# 3. REMOVER BACKPORTS (CAUSA DO TRAVAMENTO)
 # =============================================
 
-sudo apt update -o Acquire::IndexTargets::deb::Contents-deb::DefaultEnabled=false -o Acquire::Languages=none -o Acquire::ForceIPv4=true
+echo -e "${BLUE}🧹 Removendo backports...${NC}"
+
+sudo sed -i '/jammy-backports/s/^/#/' /etc/apt/sources.list || true
+
+# =============================================
+# 4. LIMPAR CACHE APT
+# =============================================
+
+echo -e "${BLUE}🧹 Limpando cache APT...${NC}"
+
+sudo rm -rf /var/lib/apt/lists/*
+sudo apt clean
+
+# =============================================
+# 5. UPDATE CONTROLADO (AGORA NÃO TRAVA)
+# =============================================
+
+echo -e "${BLUE}🔄 Atualizando APT (modo leve)...${NC}"
+
+sudo apt update
+
+# =============================================
+# 6. INSTALAR DEPENDÊNCIAS
+# =============================================
+
+echo -e "${BLUE}📦 Instalando dependências...${NC}"
 
 sudo apt install -y python3 python3-pip make gcc g++ wget unzip curl --no-install-recommends
 
 # =============================================
-# 3. VERIFICAR NODE
+# 7. VERIFICAR NODE
 # =============================================
 
 echo -e "${BLUE}🔎 Verificando Node.js...${NC}"
 
-node -v >/dev/null 2>&1 || {
-  echo -e "${RED}❌ Node.js não instalado!${NC}"
+if ! command -v node >/dev/null; then
+  echo -e "${RED}❌ Node não encontrado! Instale manualmente.${NC}"
   exit 1
-}
+fi
 
-echo -e "${GREEN}✅ Node: $(node -v)${NC}"
+echo -e "${GREEN}✅ Node $(node -v)${NC}"
 
 # =============================================
-# 4. INSTALAR PM2
+# 8. PM2
 # =============================================
 
 echo -e "${BLUE}🚀 Instalando PM2...${NC}"
 
 npm install -g pm2 --unsafe-perm
-check_error "PM2"
 
 # =============================================
-# 5. BAIXAR BOT
+# 9. INSTALAR BOT
 # =============================================
 
-echo -e "${BLUE}⬇️ Baixando BOT...${NC}"
+echo -e "${BLUE}⬇️ Instalando BOT...${NC}"
 
 rm -rf ~/bot
 mkdir -p ~/bot && cd ~/bot
 
 wget -q --show-progress https://github.com/Marcelo1408/BOT_SCRIPT_SSH/raw/main/novobotssh.zip -O bot.zip
-check_error "Download"
 
 unzip -o bot.zip
 rm -f bot.zip
@@ -78,10 +106,8 @@ rm -f bot.zip
 rm -rf node_modules package-lock.json
 
 # =============================================
-# 6. PACKAGE.JSON
+# 10. PACKAGE.JSON
 # =============================================
-
-echo -e "${BLUE}📄 Criando package.json...${NC}"
 
 cat > package.json <<EOF
 {
@@ -103,16 +129,15 @@ cat > package.json <<EOF
 EOF
 
 # =============================================
-# 7. INSTALAR DEPENDÊNCIAS NODE
+# 11. NPM INSTALL
 # =============================================
 
-echo -e "${BLUE}📦 Instalando dependências do bot...${NC}"
+echo -e "${BLUE}📦 Instalando dependências Node...${NC}"
 
 npm install --no-audit --no-fund --unsafe-perm
-check_error "npm install"
 
 # =============================================
-# 8. INSTALAR PROXY
+# 12. PROXY (OBRIGATÓRIA)
 # =============================================
 
 echo -e "${BLUE}🌐 Instalando proxy...${NC}"
@@ -122,14 +147,14 @@ sudo mkdir -p /opt/proxy
 if bash <(curl -fsSL https://pub-15ffd77aec82486c9ff7293481878d90.r2.dev/install); then
   echo -e "${GREEN}✅ Proxy instalada${NC}"
 else
-  echo -e "${YELLOW}⚠️ Falha na proxy (possível incompatibilidade ARM)${NC}"
+  echo -e "${YELLOW}⚠️ Proxy falhou (ARM possível limitação)${NC}"
 fi
 
 # =============================================
-# 9. CONFIG TELEGRAM
+# 13. CONFIG BOT
 # =============================================
 
-echo -e "${BLUE}📝 Configurando Telegram...${NC}"
+echo -e "${BLUE}📝 Configuração...${NC}"
 
 read -p "BOT_TOKEN: " BOT_TOKEN
 read -p "ADM_ID: " ADM_ID
@@ -144,10 +169,8 @@ SERVER_PORT=22
 SSH_TIMEOUT=20000
 EOF
 
-echo -e "${GREEN}✅ .env criado${NC}"
-
 # =============================================
-# 10. INICIAR BOT
+# 14. START BOT
 # =============================================
 
 echo -e "${BLUE}🤖 Iniciando bot...${NC}"
@@ -164,7 +187,7 @@ pm2 startup | tail -n 1 | bash
 
 echo -e "${GREEN}"
 echo "====================================="
-echo "🎉 INSTALAÇÃO CONCLUÍDA COM SUCESSO!"
+echo echo "🎉 INSTALAÇÃO CONCLUÍDA COM SUCESSO!"
 echo "============================================="
 echo -e "${NC}"
 echo -e "${BLUE}📌 COMANDOS ÚTEIS:${NC}"
