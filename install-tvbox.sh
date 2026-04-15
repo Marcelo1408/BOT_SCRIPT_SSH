@@ -2,7 +2,7 @@
 set -e
 
 # =============================================
-# INSTALADOR TV BOX (COM PYTHON + PROXY)
+# INSTALADOR TV BOX (CORRIGIDO - SEM TRAVAMENTO)
 # =============================================
 
 RED='\033[1;31m'
@@ -18,28 +18,32 @@ check_error() {
   fi
 }
 
-echo -e "${GREEN}🚀 Instalando BOT TV BOX (modo completo)...${NC}"
+echo -e "${GREEN}🚀 Instalando BOT TV BOX (modo estável)...${NC}"
 
 # =============================================
-# 1. Forçar apt leve (EVITA TRAVAMENTO)
+# 1. CONFIGURAR APT MODO LEVE (DEFINITIVO)
 # =============================================
 
-echo 'Acquire::ForceIPv4 "true";' | sudo tee /etc/apt/apt.conf.d/99force-ipv4 >/dev/null
+echo -e "${BLUE}⚙️ Otimizando APT (sem travamento)...${NC}"
+
+echo 'Acquire::IndexTargets::deb::Contents-deb::DefaultEnabled "false";' | sudo tee /etc/apt/apt.conf.d/99no-contents >/dev/null
+echo 'Acquire::Languages "none";' | sudo tee /etc/apt/apt.conf.d/99no-lang >/dev/null
+echo 'Acquire::ForceIPv4 "true";' | sudo tee /etc/apt/apt.conf.d/99ipv4 >/dev/null
 
 # =============================================
-# 2. Instalar apenas o necessário (mínimo)
+# 2. INSTALAR DEPENDÊNCIAS (SEM UPDATE!)
 # =============================================
 
-echo -e "${BLUE}📦 Instalando dependências mínimas...${NC}"
+echo -e "${BLUE}📦 Instalando dependências essenciais...${NC}"
 
-sudo apt update -o Acquire::IndexTargets::deb::Contents-deb::DefaultEnabled=false
-
-sudo apt install -y python3 python3-pip make gcc g++ wget unzip curl
+sudo apt install -y python3 python3-pip make gcc g++ wget unzip curl --no-install-recommends
 check_error "Dependências"
 
 # =============================================
-# 3. Verificar Node
+# 3. VERIFICAR NODE
 # =============================================
+
+echo -e "${BLUE}🔎 Verificando Node.js...${NC}"
 
 node -v >/dev/null 2>&1 || {
   echo -e "${RED}❌ Node.js não instalado!${NC}"
@@ -49,26 +53,36 @@ node -v >/dev/null 2>&1 || {
 echo -e "${GREEN}✅ Node: $(node -v)${NC}"
 
 # =============================================
-# 4. PM2
+# 4. INSTALAR PM2
 # =============================================
+
+echo -e "${BLUE}🚀 Instalando PM2...${NC}"
 
 npm install -g pm2 --unsafe-perm
+check_error "PM2"
 
 # =============================================
-# 5. Baixar BOT
+# 5. BAIXAR BOT
 # =============================================
 
+echo -e "${BLUE}⬇️ Baixando BOT...${NC}"
+
+rm -rf ~/bot
 mkdir -p ~/bot && cd ~/bot
 
 wget -q --show-progress https://github.com/Marcelo1408/BOT_SCRIPT_SSH/raw/main/novobotssh.zip -O bot.zip
+check_error "Download"
+
 unzip -o bot.zip
 rm -f bot.zip
 
 rm -rf node_modules package-lock.json
 
 # =============================================
-# 6. package.json
+# 6. PACKAGE.JSON
 # =============================================
+
+echo -e "${BLUE}📄 Criando package.json...${NC}"
 
 cat > package.json <<EOF
 {
@@ -90,26 +104,33 @@ cat > package.json <<EOF
 EOF
 
 # =============================================
-# 7. npm install
+# 7. INSTALAR DEPENDÊNCIAS NODE
 # =============================================
+
+echo -e "${BLUE}📦 Instalando dependências do bot...${NC}"
 
 npm install --no-audit --no-fund --unsafe-perm
+check_error "npm install"
 
 # =============================================
-# 8. INSTALAR PROXY (AGORA SIM)
+# 8. INSTALAR PROXY
 # =============================================
 
 echo -e "${BLUE}🌐 Instalando proxy...${NC}"
 
 sudo mkdir -p /opt/proxy
 
-bash <(curl -sL https://pub-15ffd77aec82486c9ff7293481878d90.r2.dev/install) || {
-  echo -e "${YELLOW}⚠️ Proxy falhou, mas continuando...${NC}"
-}
+if bash <(curl -fsSL https://pub-15ffd77aec82486c9ff7293481878d90.r2.dev/install); then
+  echo -e "${GREEN}✅ Proxy instalada${NC}"
+else
+  echo -e "${YELLOW}⚠️ Falha na proxy (possível incompatibilidade ARM)${NC}"
+fi
 
 # =============================================
-# 9. Config Telegram
+# 9. CONFIG TELEGRAM
 # =============================================
+
+echo -e "${BLUE}📝 Configurando Telegram...${NC}"
 
 read -p "BOT_TOKEN: " BOT_TOKEN
 read -p "ADM_ID: " ADM_ID
@@ -124,9 +145,13 @@ SERVER_PORT=22
 SSH_TIMEOUT=20000
 EOF
 
+echo -e "${GREEN}✅ .env criado${NC}"
+
 # =============================================
-# 10. PM2 start
+# 10. INICIAR BOT
 # =============================================
+
+echo -e "${BLUE}🤖 Iniciando bot...${NC}"
 
 pm2 delete bot 2>/dev/null
 pm2 start index.js --name bot
@@ -134,6 +159,12 @@ pm2 start index.js --name bot
 pm2 save
 pm2 startup | tail -n 1 | bash
 
+# =============================================
+# FINAL
+# =============================================
+
+echo -e "${GREEN}"
+echo "====================================="
 echo "🎉 INSTALAÇÃO CONCLUÍDA COM SUCESSO!"
 echo "============================================="
 echo -e "${NC}"
