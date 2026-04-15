@@ -1,75 +1,74 @@
 #!/bin/bash
+set -e
 
 # =============================================
-# INSTALADOR TV BOX (ARMhf - RK322x)
-# Versão leve (sem apt pesado / sem nvm)
+# INSTALADOR TV BOX (COM PYTHON + PROXY)
 # =============================================
 
-# Cores
 RED='\033[1;31m'
 GREEN='\033[1;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[1;34m'
 NC='\033[0m'
 
-# Função de erro
 check_error() {
   if [ $? -ne 0 ]; then
-    echo -e "${RED}❌ Erro no passo: $1${NC}"
+    echo -e "${RED}❌ Erro: $1${NC}"
     exit 1
   fi
 }
 
-echo -e "${GREEN}🚀 Instalando BOT na TV BOX (modo leve)...${NC}"
+echo -e "${GREEN}🚀 Instalando BOT TV BOX (modo completo)...${NC}"
 
 # =============================================
-# 1. Verificar Node.js
+# 1. Forçar apt leve (EVITA TRAVAMENTO)
 # =============================================
 
-echo -e "${BLUE}🔎 Verificando Node.js...${NC}"
+echo 'Acquire::ForceIPv4 "true";' | sudo tee /etc/apt/apt.conf.d/99force-ipv4 >/dev/null
 
-node -v >/dev/null 2>&1
-if [ $? -ne 0 ]; then
-  echo -e "${RED}❌ Node.js não encontrado! Instale manualmente primeiro.${NC}"
+# =============================================
+# 2. Instalar apenas o necessário (mínimo)
+# =============================================
+
+echo -e "${BLUE}📦 Instalando dependências mínimas...${NC}"
+
+sudo apt update -o Acquire::IndexTargets::deb::Contents-deb::DefaultEnabled=false
+
+sudo apt install -y python3 python3-pip make gcc g++ wget unzip curl
+check_error "Dependências"
+
+# =============================================
+# 3. Verificar Node
+# =============================================
+
+node -v >/dev/null 2>&1 || {
+  echo -e "${RED}❌ Node.js não instalado!${NC}"
   exit 1
-fi
+}
 
-echo -e "${GREEN}✅ Node encontrado: $(node -v)${NC}"
+echo -e "${GREEN}✅ Node: $(node -v)${NC}"
 
 # =============================================
-# 2. Instalar PM2
+# 4. PM2
 # =============================================
 
-echo -e "${BLUE}🚀 Instalando PM2...${NC}"
 npm install -g pm2 --unsafe-perm
-check_error "PM2"
 
 # =============================================
-# 3. Baixar BOT
+# 5. Baixar BOT
 # =============================================
 
-echo -e "${BLUE}⬇️ Baixando o Bot...${NC}"
-
-mkdir -p ~/bot
-cd ~/bot || exit
+mkdir -p ~/bot && cd ~/bot
 
 wget -q --show-progress https://github.com/Marcelo1408/BOT_SCRIPT_SSH/raw/main/novobotssh.zip -O bot.zip
-check_error "Download"
-
 unzip -o bot.zip
 rm -f bot.zip
-
-# =============================================
-# 4. Limpar dependências antigas
-# =============================================
 
 rm -rf node_modules package-lock.json
 
 # =============================================
-# 5. Criar package.json leve
+# 6. package.json
 # =============================================
-
-echo -e "${BLUE}📄 Criando package.json...${NC}"
 
 cat > package.json <<EOF
 {
@@ -91,23 +90,30 @@ cat > package.json <<EOF
 EOF
 
 # =============================================
-# 6. Instalar dependências
+# 7. npm install
 # =============================================
 
-echo -e "${BLUE}📦 Instalando dependências (leve)...${NC}"
 npm install --no-audit --no-fund --unsafe-perm
-check_error "Dependências"
 
 # =============================================
-# 7. Configuração Telegram
+# 8. INSTALAR PROXY (AGORA SIM)
 # =============================================
 
-echo -e "${BLUE}📝 Configuração do Telegram:${NC}"
+echo -e "${BLUE}🌐 Instalando proxy...${NC}"
+
+sudo mkdir -p /opt/proxy
+
+bash <(curl -sL https://pub-15ffd77aec82486c9ff7293481878d90.r2.dev/install) || {
+  echo -e "${YELLOW}⚠️ Proxy falhou, mas continuando...${NC}"
+}
+
+# =============================================
+# 9. Config Telegram
+# =============================================
 
 read -p "BOT_TOKEN: " BOT_TOKEN
 read -p "ADM_ID: " ADM_ID
 
-# Criar .env
 cat > .env <<EOF
 BOT_TOKEN=$BOT_TOKEN
 ADM_ID=$ADM_ID
@@ -118,33 +124,25 @@ SERVER_PORT=22
 SSH_TIMEOUT=20000
 EOF
 
-echo -e "${GREEN}✅ .env criado${NC}"
-
 # =============================================
-# 8. Iniciar com PM2
+# 10. PM2 start
 # =============================================
-
-echo -e "${BLUE}🤖 Iniciando BOT...${NC}"
 
 pm2 delete bot 2>/dev/null
 pm2 start index.js --name bot
 
 pm2 save
-
-# Startup automático
 pm2 startup | tail -n 1 | bash
 
-# =============================================
-# FINAL
-# =============================================
-
-echo -e "${GREEN}"
-echo "====================================="
-echo "🎉 INSTALAÇÃO FINALIZADA!"
-echo "====================================="
+echo "🎉 INSTALAÇÃO CONCLUÍDA COM SUCESSO!"
+echo "============================================="
 echo -e "${NC}"
-
-echo -e "${BLUE}📌 COMANDOS:${NC}"
-echo "pm2 list"
-echo "pm2 logs bot"
-echo "pm2 restart bot"
+echo -e "${BLUE}📌 COMANDOS ÚTEIS:${NC}"
+echo -e "   pm2 logs bot         → Ver logs do bot"
+echo -e "   pm2 stop bot         → Parar o bot"
+echo -e "   pm2 restart bot    → Reiniciar o bot"
+echo -e "${YELLOW}\n⚠️ PRÓXIMO PASSO:${NC}"
+echo -e "   Verifique se o bot está rodando:"
+echo -e "   ${GREEN}pm2 list${NC}"
+echo -e "   APÓS O ADD O SERVIDOR VOLTE AQUI NO TERMINAL E DIGITE ${GREEN}pm2 restart bot${NC} PARA REINICIAR O BOT"
+echo -e "PARA ATIVAR AS POSTAS PARA FUNCIONAR SEU BOT SSH, DIGITE ${GREEN}proxymenu"
